@@ -1,0 +1,4 @@
+baseURL = "https://neo-dai.github.io/" # 换成你未来的网址
+languageCode = "zh-CN"
+title = "myblog"
+theme = "ananke" # 告诉 Hugo 使用这个主题

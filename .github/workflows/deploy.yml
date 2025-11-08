@@ -1,0 +1,57 @@
+# .github/workflows/deploy.yml
+
+name: Deploy Hugo Site to GitHub Pages
+
+# 触发条件：当 push 到 main 分支时
+on:
+  push:
+    branches:
+      - main  # 确保这里是你源码库的默认分支
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest  # 使用最新的 Ubuntu 运行环境
+    
+    steps:
+      # 步骤 1: Checkout 源码
+      # 必须检出源码，Action 才能访问到你的 Markdown
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          submodules: true  # 如果你的主题是 git submodule，这行必须有
+          fetch-depth: 0    # 获取所有 git 历史，用于 .Lastmod
+
+      # 步骤 2: 安装 Hugo 环境
+      # 使用 peaceiris/actions-hugo 这个流行的 Action
+      - name: Setup Hugo
+        uses: peaceiris/actions-hugo@v3
+        with:
+          hugo-version: 'latest' # 自动使用最新版 Hugo
+          # extended: true # 如果你用的是Sass/SCSS，取消这行注释
+
+      # 步骤 3: 编译 Hugo 网站
+      # 运行 hugo 命令，生成 public 文件夹
+      - name: Build
+        run: hugo --minify
+
+      # 步骤 4: 部署到 GitHub Pages
+      # 使用 peaceiris/actions-gh-pages Action
+      - name: Deploy
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          # 必填：使用我们刚才配置的私钥
+          deploy_key: ${{ secrets.ACTIONS_DEPLOY_KEY }}
+          
+          # 必填：你要推向的仓库，格式：<你的GitHub用户名>/<你的.github.io仓库>
+          external_repository: neo-dai/neo-dai.github.io
+          
+          # 必填：要推送到的分支
+          publish_branch: main # 你的 .github.io 仓库是用 main 还是 master？
+          
+          # 可选：生成的 public 目录
+          publish_dir: ./public
+          # 可选：如果你绑定了自定义域名，填在这里
+          # cname: www.your-domain.com
+          # 可选：自定义 commit 信息
+          commit_message: "Automated deployment: ${{ github.event.head_commit.message }}"
+

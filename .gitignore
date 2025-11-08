@@ -1,0 +1,20 @@
+# Hugo 生成的文件和目录
+/public/
+/resources/_gen/
+.hugo_build.lock
+
+# macOS
+.DS_Store
+
+# 编辑器
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# 部署密钥（私钥不应该提交）
+*.pem
+*.key
+!*.pub
+
