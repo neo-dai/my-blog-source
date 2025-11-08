@@ -27,7 +27,7 @@ jobs:
         uses: peaceiris/actions-hugo@v3
         with:
           hugo-version: 'latest' # 自动使用最新版 Hugo
-          # extended: true # 如果你用的是Sass/SCSS，取消这行注释
+          extended: true # 启用 extended 版本以支持 SCSS/SASS 编译
 
       # 步骤 3: 编译 Hugo 网站
       # 运行 hugo 命令，生成 public 文件夹
