@@ -7,6 +7,33 @@ title = '使用GitHub Action 自动化部署blog'
 
 在日常写博客时，如果每次都需要本地执行 `hugo` 构建命令、进入 public 目录、再手动 `git push`，效率低且易出错。现代开发讲究 CI/CD（持续集成/持续部署），其实我们能完全自动化博客发布，让你专注写 Markdown，其余交给 GitHub Actions 实现自动部署。
 
+## 前后流程对比
+
+在进入详细流程前，先来看博客部署的前后对比流程图：
+
+### 🕹️ 传统手动部署流程
+
+```mermaid
+graph TD
+  A[写 Markdown] --> B[本地 hugo 构建]
+  B --> C[进入 public 目录]
+  C --> D[git add/commit/push 到 pages 仓库]
+  D --> E[博客发布上线]
+```
+
+### 🚀 自动化部署（CI/CD）流程
+
+```mermaid
+graph TD
+  A[写 Markdown] --> B[git push 到源码仓库]
+  B --> C[触发 GitHub Actions 自动构建]
+  C --> D[Actions 自动生成静态网页]
+  D --> E[Actions 自动推送到 pages 仓库]
+  E --> F[博客发布上线]
+```
+
+可以看到，自动化部署后，你只需要写好 Markdown 并 `git push`，其它琐事全部交给自动流水线，极大提高效率和安全性。
+
 ## 一、整体流程说明
 
 自动化部署 Hugo 博客的基本流程如下：
