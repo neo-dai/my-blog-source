@@ -1,7 +1,7 @@
 baseURL = "https://neo-dai.github.io/" # 换成你未来的网址
 languageCode = "zh-CN"
 title = "myblog"
-theme = "ananke" # 告诉 Hugo 使用这个主题
+theme = "PaperMod" # 使用PaperMod主题
 
 # 主题参数配置
 [params]
@@ -12,62 +12,16 @@ theme = "ananke" # 告诉 Hugo 使用这个主题
   author = "neo"
   
   # 显示阅读时间和字数统计
-  show_reading_time = true
-  
-  # 自定义"阅读更多"链接文本
-  read_more_copy = "阅读更多"
+  showReadingTime = true
   
   # 日期格式 (使用 Go 的时间格式)
-  date_format = "2006年1月2日"
+  dateformat = "2006年1月2日"
   
-  # 文本颜色 (使用 Tachyons 颜色类)
-  text_color = "dark-gray"
+  # 默认主题模式: "light", "dark", "auto"
+  defaultTheme = "auto"
   
-  # 背景颜色和字体 (使用 Tachyons 类)
-  body_classes = "avenir bg-near-white"
-  
-  # Logo (放在 static 目录下)
-  # site_logo = "img/logo.svg"
-  
-  # 自定义 CSS (需要 Hugo Extended 版本)
-  # custom_css = ["custom.css"]
-  
-  # 特色图片背景色 (Tachyons 类)
-  background_color_class = "bg-black"
-  
-  # 特色图片样式 (Tachyons 类)
-  featured_image_class = "cover bg-center"
-  
-  # 封面遮罩颜色 (Tachyons 类)
-  cover_dimming_class = "bg-black-60"
-
-# Ananke 主题特定配置
-[ananke]
-  # 在首页显示最近发布的文章
-  show_recent_posts = true
-
-# 社交媒体关注链接配置
-[ananke.social.follow]
-  # 在新窗口打开链接时显示图标
-  new_window_icon = false
-  # 启用的社交网络 (取消注释并添加你需要的)
-  # networks = [
-  #   "github",
-  #   "twitter",
-  #   "linkedin"
-  # ]
-
-# 社交媒体分享配置
-[ananke.social.share]
-  icons = true      # 显示分享图标
-  sharetext = true # 显示分享文本
-  # 启用的分享网络
-  # networks = [
-  #   "email",
-  #   "facebook",
-  #   "twitter",
-  #   "linkedin"
-  # ]
+  # 禁用主题切换按钮 (设为true则禁用)
+  disableThemeToggle = false
 
 # 菜单配置
 [[menu.main]]
@@ -86,3 +40,13 @@ theme = "ananke" # 告诉 Hugo 使用这个主题
 [taxonomies]
   category = "categories"
   tag = "tags"
+
+# 启用Mermaid支持
+[markup]
+  [markup.highlight]
+    # 代码高亮配置
+    noClasses = false
+  [markup.goldmark]
+    [markup.goldmark.renderer]
+      # 启用不安全的HTML渲染（mermaid需要）
+      unsafe = true

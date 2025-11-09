@@ -1,0 +1,17 @@
+{{- /* Footer custom content area start */ -}}
+{{- /* 添加Mermaid支持 */ -}}
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+<script>
+  // 初始化mermaid并渲染页面中的所有mermaid图表
+  mermaid.initialize({ 
+    startOnLoad: true, 
+    theme: 'default',
+    securityLevel: 'loose'
+  });
+  // 确保所有mermaid元素都被渲染
+  if (document.querySelectorAll('.mermaid').length > 0) {
+    mermaid.run();
+  }
+</script>
+{{- /* Footer custom content area end */ -}}
+
