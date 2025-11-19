@@ -2,7 +2,7 @@
 date = '2025-11-19T15:55:47+08:00'
 draft = false
 title = 'AI 驱动的硬核阅读法：《Linux高性能服务器编程》读前指南'
-tags = ['《Linux高性能服务器编程》']
+tags = ['《Linux高性能服务器编程》','读书笔记']
 categories = ['Reading Notes']
 +++
 
