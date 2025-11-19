@@ -28,18 +28,26 @@ theme = "PaperMod" # 使用PaperMod主题
   identifier = "home"
   name = "首页"
   url = "/"
-  weight = 1
+  weight = 10
 
 [[menu.main]]
   identifier = "posts"
   name = "文章"
   url = "/posts/"
-  weight = 2
+  weight = 20
+
+# 系列入口 (Series)
+[[menu.main]]
+  identifier = "series"
+  name = "专栏"       # 我建议叫“专栏”或“系列”
+  url = "/series/"
+  weight = 40
 
 # 分类和标签配置
 [taxonomies]
   category = "categories"
   tag = "tags"
+  series = "series" # 系列
 
 # 启用Mermaid支持
 [markup]
