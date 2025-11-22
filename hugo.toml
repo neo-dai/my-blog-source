@@ -58,3 +58,9 @@ theme = "PaperMod" # 使用PaperMod主题
     [markup.goldmark.renderer]
       # 启用不安全的HTML渲染（mermaid需要）
       unsafe = true
+    [markup.goldmark.extensions]
+      [markup.goldmark.extensions.passthrough]
+        enable = true
+        [markup.goldmark.extensions.passthrough.delimiters]
+          block = [['$$', '$$'], ['\\[', '\\]']]
+          inline = [['$', '$'], ['\\(', '\\)']]

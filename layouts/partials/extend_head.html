@@ -1,4 +1,11 @@
 {{- /* Head custom content area start */ -}}
+
+{{- /* 添加KaTeX数学公式支持 */ -}}
+{{ if or .Params.math .Site.Params.math }}
+{{ partial "math.html" . }}
+{{ end }}
+
+
 {{- /* 添加Mermaid支持 - 检测页面是否包含mermaid代码块 */ -}}
 {{- $hasMermaid := false }}
 {{- if .Content }}
