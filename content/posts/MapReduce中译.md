@@ -24,38 +24,67 @@ math = true
 # MapReduce：大型集群上的简化数据处理
 
 **Jeffrey Dean and Sanjay Ghemawat**
+
 jeff@google.com, sanjay@google.com
-Google, Inc.
+
+*Google, Inc.*
 
 ## 摘要 (Abstract)
 
-MapReduce 是一个编程模型，也是一个用于处理和生成大数据集的相关实现。用户指定一个 **Map（映射）** 函数，处理一个键/值对（key/value pair）以生成一组中间键/值对；以及一个 **Reduce（归约）** 函数，用于合并与同一中间键关联的所有中间值。如论文所示，许多现实世界的任务都可以用这个模型来表达。
+MapReduce is a programming model and an associ-ated implementation for processing and generating large data sets. Users specify a **map** function that processes a key/value pair to generate a set of intermediate key/value pairs, and a **reduce** function that merges all intermediate values associated with the same intermediate key. Many real-world tasks can be expressed in this model, as shown in the paper.
 
-以这种函数式风格编写的程序会自动并行化，并在由普通商用机器组成的大型集群上执行。运行时系统负责处理输入数据的划分、在机器集上调度程序执行、处理机器故障以及管理所需的机器间通信等细节。这使得没有任何并行和分布式系统经验的程序员也能轻松利用大型分布式系统的资源。
+> MapReduce是一种编程模型，以及一种用于处理和生成大规模数据集的配套实现。用户需指定一个**Map(映射)函数**来处理键/值对并生成一组中间键/值对，以及一个**Reduce(归约)函数**来合并所有与同一中间键关联的中间值。许多现实任务都可以用这个模型来表达，正如本文所展示的。
 
-我们的 MapReduce 实现运行在大型普通商用机器集群上，并且具有高度的可扩展性：典型的 MapReduce 计算在数千台机器上处理数太字节（TB）的数据。程序员发现该系统易于使用：目前已实现了数百个 MapReduce 程序，每天在 Google 的集群上执行超过一千个 MapReduce 作业。
+Programs written in this functional style are automati-cally parallelized and executed on a large cluster of com-modity machines. The run-time system takes care of the details of partitioning the input data, scheduling the pro-gram's execution across a set of machines, handling ma-chine failures, and managing the required inter-machine communication. This allows programmers without any experience with parallel and distributed systems to eas-ily utilize the resources of a large distributed system.
+
+> 采用这种函数式风格编写的程序会自动并行化，并在由廉价商用机器组成的大型集群上执行。运行时系统会处理输入数据分区、跨多台机器调度程序执行、处理机器故障以及管理机器间通信等所有细节。这使得即使是毫无并行和分布式系统经验的程序员，也能轻松利用大型分布式系统的资源。
+
+Our implementation of **MapReduce** runs on a large
+cluster of commodity machines and is highly scalable:
+a typical MapReduce computation processes many ter-
+abytes of data on thousands of machines. Programmers
+find the system easy to use: hundreds of MapReduce pro-
+grams have been implemented and upwards of one thou-
+sand MapReduce jobs are executed on Google's clusters
+every day.
+
+> 我们的MapReduce实现运行在由廉价商用机器组成的大型集群上，并具有极高的可扩展性：一次典型的MapReduce计算可在数千台机器上处理数TB的数据。程序员们发现该系统易于使用：已有数百个MapReduce程序被实现，每天在Google集群上执行的MapReduce作业超过一千个。
 
 -----
 
 ## 1\. 介绍 (Introduction)
 
-在过去五年中，作者和 Google 的许多其他人实现了数百种专用计算，用于处理大量的原始数据（如爬取的文档、Web 请求日志等），以计算各种类型的衍生数据，如倒排索引、Web 文档图结构的各种表示、每台主机爬取页面数量的摘要、给定日期内最频繁查询的集合等。大多数此类计算在概念上都很直观。然而，输入数据通常很大，为了在合理的时间内完成，计算必须分布在数百或数千台机器上。如何并行化计算、分发数据以及处理故障的问题，往往导致原本简单的计算被大量复杂的代码所掩盖，以处理这些问题。
+Over the past five years, the authors and many others at Google have implemented hundreds of special-purpose computations that process large amounts of raw data, such as crawled documents, web request logs, etc., in order to compute various kinds of derived data, such as inverted indices, various representations of the graph structure of web documents, summaries of the number of pages crawled per host, the set of most frequent queries in a given day, and so on. Most such computations are conceptu-ally straightforward. However, the input data is usually large, and the computations have to be distributed across hundreds or thousands of machines in order to finish in a reasonable amount of time. The issues of how to par-allelize the computation, distribute the data, and handle failures often conspire to obscure the original simple computation with large amounts of complex code to deal with these issues.
 
-为了应对这种复杂性，我们设计了一种新的抽象，允许我们表达试图执行的简单计算，但在库中隐藏了并行化、容错（Fault-Tolerance）、数据分发和负载均衡的繁杂细节。我们的抽象灵感来自于 Lisp 和许多其他函数式语言中的 map 和 reduce 原语。我们意识到，我们的大多数计算都涉及对输入中的每个逻辑“记录”应用 **Map** 操作，以计算一组中间键/值对，然后对所有共享相同键的值应用 **Reduce** 操作，以适当合并衍生数据。我们使用带有用户指定的 Map 和 Reduce 操作的函数式模型，使我们要能够轻松地并行化大型计算，并使用重新执行（re-execution）作为容错的主要机制。
+> 在过去五年中，作者和Google的许多同事实现了数百个专用计算程序来处理大量原始数据(如抓取的文档、Web请求日志等)，以计算各种派生数据，如倒排索引、Web文档图结构的各种表示、每台主机抓取的页面数量汇总、给定一天内最频繁的查询集合等。大多数这类计算在概念上都很直接。然而，输入数据通常很大，为了在合理时间内完成，计算必须分布到数百或数千台机器上。如何并行化计算、分发数据和处理故障这些问题，往往会让原本简单的计算被大量用于处理这些问题的复杂代码所掩盖。
 
-这项工作的主要贡献是一个简单而强大的接口，能够实现大规模计算的自动并行化和分发，并结合了该接口在大型商用 PC 集群上的高性能实现。
+As a reaction to this complexity, we designed a new abstraction that allows us to express the simple computa-tions we were trying to perform but hides the messy de-tails of parallelization, fault-tolerance, data distribution and load balancing in a library. Our abstraction is in-spired by the map and reduce primitives present in Lisp and many other functional languages. We realized that most of our computations involved applying a map op- eration to each logical "record" in our input in order to compute a set of intermediate key/value pairs, and then applying a reduce operation to all the values that shared the same key, in order to combine the derived data ap-propriately. Our use of a functional model with user-specified map and reduce operations allows us to paral-lelize large computations easily and to use re-execution as the primary mechanism for fault tolerance.
 
-第 2 节描述了基本的编程模型并给出了几个例子。第 3 节描述了针对我们基于集群的计算环境量身定制的 MapReduce 接口的实现。第 4 节描述了我们发现有用的几种编程模型优化。第 5 节对我们的实现进行了各种任务的性能测量。第 6 节探讨了 MapReduce 在 Google 内部的使用，包括我们使用它作为重写生产索引系统基础的经验。第 7 节讨论了相关和未来的工作。
+> 为应对这一复杂性，我们设计了一种新的抽象，它允许我们表达想要执行的简单计算，同时将并行化、容错、数据分发和负载均衡等繁琐细节隐藏在库中。我们的抽象受到Lisp及许多其他函数式语言中map和reduce原语的启发。我们意识到，大多数计算都涉及对输入中的每个逻辑"记录"应用一次map操作以计算一组中间键/值对，然后对共享同一键的所有值应用reduce操作，以恰当地组合派生数据。使用这种带有用户指定map和reduce操作的函数式模型，使我们能够轻松地并行化大型计算，并将重新执行作为容错的主要机制。
+
+The major contributions of this work are a simple and powerful interface that enables automatic parallelization and distribution of large-scale computations, combined with an implementation of this interface that achieves high performance on large clusters of commodity PCs.
+
+> 本文的主要贡献包括：一个简单而强大的接口(能实现大规模计算的自动并行化和分发)，以及该接口在大型廉价PC集群上的高性能实现。
+
+Section 2 describes the basic programming model and gives several examples. Section 3 describes an imple-mentation of the MapReduce interface tailored towards our cluster-based computing environment. Section 4 de-scribes several refinements of the programming model that we have found useful. Section 5 has performance measurements of our implementation for a variety of tasks. Section 6 explores the use of MapReduce within Google including our experiences in using it as the basis for a rewrite of our production indexing system. Sec-tion 7 discusses related and future work.
+
+> 第2节描述了基本的编程模型并给出几个示例。第3节描述了针对我们基于集群的计算环境定制的MapReduce接口实现。第4节描述了编程模型的几项我们认为有用的改进。第5节给出了我们的实现在多种任务上的性能测量结果。第6节探讨了MapReduce在Google内的使用，包括我们将其作为基础重写生产索引系统的经验。第7节讨论了相关工作和未来工作。
 
 -----
 
 ## 2\. 编程模型 (Programming Model)
 
-计算接受一组输入键/值对，并产生一组输出键/值对。MapReduce 库的用户将计算表达为两个函数：**Map** 和 **Reduce**。
+The computation takes a set of input key/value pairs, and produces a set of output key/value pairs. The user of the MapReduce library expresses the computation as two functions: Map and Reduce.
 
-**Map**，由用户编写，接受一个输入对并产生一组中间键/值对。MapReduce 库将与同一中间键 $I$ 关联的所有中间值分组，并将它们传递给 **Reduce** 函数。
+> 该计算接受一组输入键/值对，产生一组输出键/值对。用户使用两个函数来表达计算：**Map**和**Reduce**。
 
-**Reduce** 函数，也由用户编写，接受一个中间键 $I$ 和该键的一组值。它将这些值合并在一起，形成一个可能更小的值集。通常，每次 Reduce 调用只产生零个或一个输出值。中间值通过迭代器提供给用户的 Reduce 函数。这允许我们要处理因为太大而无法放入内存的值列表。
+Map, written by the user, takes an input pair and pro-duces a set of intermediate key/value pairs. The MapRe-duce library groups together all intermediate values asso-ciated with the same intermediate key I and passes them to the Reduce function.
+
+> **Map**函数由用户编写，接受一个输入键/值对，产生一组中间键/值对。MapReduce库将所有与同一中间键$I$关联的中间值组合在一起，并传递给**Reduce**函数。
+
+The Reduce function, also written by the user, accepts an intermediate key I and a set of values for that key. It merges together these values to form a possibly smaller set of values. Typically just zero or one output value is produced per Reduce invocation. The intermediate val-ues are supplied to the user's reduce function via an iter-ator. This allows us to handle lists of values that are too large to fit in memory.
+
+> **Reduce**函数也由用户编写，接受一个中间键$I$和该键的一组值。它将这些值合并，形成一个可能更小的值集合。通常每次Reduce调用只产生零个或一个输出值。中间值通过迭代器提供给用户的reduce函数。这使我们能够处理太大而无法放入内存的值列表。
 
 ### 2.1 示例 (Example)
 

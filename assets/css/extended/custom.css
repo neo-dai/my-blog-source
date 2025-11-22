@@ -1,0 +1,40 @@
+:root {
+    /* 清新易读的字体栈：
+       1. "LXGW WenKai Screen": 霞鹜文楷屏幕优化版，温和优美的中文字体
+       2. -apple-system: macOS/iOS系统字体(苹方)
+       3. BlinkMacSystemFont: macOS Chrome浏览器
+       4. "Segoe UI": Windows优化字体
+       5. "Microsoft YaHei": Windows微软雅黑
+       6. sans-serif: 保底无衬线字体
+    */
+    --font-family: "LXGW WenKai Screen", -apple-system, BlinkMacSystemFont, "Segoe UI", "Microsoft YaHei", sans-serif;
+}
+
+body {
+    font-family: var(--font-family);
+    /* 舒适的行高，适合长时间阅读 */
+    line-height: 1.8;
+    /* 柔和的深灰色，减轻阅读疲劳 */
+    color: #2c3e50;
+    /* 稍微增大字号，提升可读性 */
+    font-size: 17px;
+}
+
+/* 针对引用块的特别设置 */
+.post-content blockquote {
+    /* 引用块使用相同字体，通过样式区分 */
+    font-family: var(--font-family);
+    /* 稍微减小字号以示区别 */
+    font-size: 0.95em;
+    /* 柔和的背景色 */
+    background: #f8f9fa;
+    border-left: 4px solid #3498db;
+    padding: 12px 20px;
+    margin: 1.5em 0;
+    color: #34495e;
+}
+
+/* 代码块保持等宽字体 */
+code, pre {
+    font-family: "JetBrains Mono", "Fira Code", "Cascadia Code", Consolas, Monaco, "Courier New", monospace;
+}
