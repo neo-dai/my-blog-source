@@ -8,7 +8,7 @@ series = ["分布式系统学习"]
 math = true       
 +++
 
-本文是《MapReduce：Simplified Data Processing on Large Clusters》论文的中文翻译。
+本文是 **《MapReduce：Simplified Data Processing on Large Clusters》** 论文的中文翻译。
 
 该论文是分布式系统领域的里程碑式工作，提出了 MapReduce 编程模型，极大地简化了大规模数据处理任务的开发难度。MapReduce 与 GFS（Google File System）和 Bigtable 并称为“Google三驾马车”，成为支撑 Google 大规模数据处理和存储的核心基础设施之一。无论你是刚入门分布式系统开发，还是希望深入理解现代大数据处理的核心思想，深入阅读和理解此文都具有重要的学习价值。  
 
