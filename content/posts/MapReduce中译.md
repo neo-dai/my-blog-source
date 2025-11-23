@@ -87,8 +87,9 @@ The Reduce function, also written by the user, accepts an intermediate key I and
 > **Reduce**函数也由用户编写，接受一个中间键$I$和该键的一组值。它将这些值合并，形成一个可能更小的值集合。通常每次Reduce调用只产生零个或一个输出值。中间值通过迭代器提供给用户的reduce函数。这使我们能够处理太大而无法放入内存的值列表。
 
 ### 2.1 示例 (Example)
+Consider the problem of counting the number of oc- currences of each word in a large collection of docu- ments. The user would write code similar to the follow- ing pseudo-code:
 
-考虑计算大量文档集合中每个单词出现次数的问题。用户将编写类似以下伪代码的代码：
+>考虑在海量文档集合中统计每个单词出现次数的问题。用户会编写类似如下的伪代码：
 
 ```c++
 map(String key, String value):
@@ -106,105 +107,296 @@ reduce(String key, Iterator values):
     Emit(AsString(result));
 ```
 
-Map 函数发出每个单词及其相关的出现次数（在这个简单的例子中就是 '1'）。Reduce 函数将特定单词发出的所有计数求和。
+The mapfunction emits each word plus an associated count of occurrences (just ‘1’ in this simple example).  The reducefunction sums together all counts emitted for a particular word.
 
-此外，用户编写代码填充一个 mapreduce 规范对象，其中包含输入和输出文件的名称以及可选的调优参数。然后用户调用 MapReduce 函数，并将规范对象传递给它。用户的代码与 MapReduce 库（用 C++ 实现）链接在一起。附录 A 包含此示例的完整程序文本。
+>Map函数会输出每个单词以及对应的出现次数（在此简单示例中固定为“1”），Reduce函数则把针对同一单词输出的所有计数相加。
+
+In addition, the user writes code to fill in a mapreduce specification object with the names of the input and out-put files, and optional tuning parameters. The user then invokes the MapReduce function, passing it the specifi-cation object. The user’s code is linked together with the MapReduce library (implemented in C++). Appendix A contains the full program text for this example.
+
+>此外，用户还需编写代码来填充一个MapReduce规范对象，指定输入输出文件名及可选的调优参数。随后调用MapReduce函数并传入该规范对象。用户代码会与用C++实现的MapReduce库链接，附录A给出了该示例的完整程序。
 
 ### 2.2 类型 (Types)
 
-尽管前面的伪代码是用字符串输入和输出编写的，但在概念上，用户提供的 Map 和 Reduce 函数具有关联的类型：
+Even though the previous pseudo-code is written in terms of string inputs and outputs, conceptually the map and reduce functions supplied by the user have associated
+types:
+
+>尽管上述伪代码以字符串作为输入输出，但从概念上讲，用户提供的Map和Reduce函数各自都具有明确的类型：
 
 ```text
 map     (k1, v1)       ->  list(k2, v2)
 reduce  (k2, list(v2)) ->  list(v2)
 ```
+I.e., the input keys and values are drawn from a different domain than the output keys and values. Furthermore, the intermediate keys and values are from the same do-main as the output keys and values.
 
-即，输入键和值来自与输出键和值不同的域。此外，中间键和值与输出键和值来自同一域。
+>也就是说，输入的键和值所属的域与输出的键和值不同；同时，中间结果中的键和值与输出端处在同一域。
 
-我们的 C++ 实现将字符串传递给用户定义的函数，并从用户定义的函数接收字符串，留给用户代码在字符串和适当类型之间进行转换。
+Our C++ implementation passes strings to and from the user-defined functions and leaves it to the user code to convert between strings and appropriate types.
+
+>我们的C++实现会向用户自定义函数传入字符串并接收其返回字符串，至于如何在字符串与具体类型之间转换则留给用户代码自行处理。
 
 ### 2.3 更多示例 (More Examples)
 
-以下是一些可以轻松表示为 MapReduce 计算的有趣程序的简单示例：
+Here are a few simple examples of interesting programs that can be easily expressed as MapReduce computa-tions.
 
-  * **分布式 Grep (Distributed Grep)：** Map 函数如果匹配提供的模式则发出一行。Reduce 函数是一个恒等函数，只是将提供的中间数据复制到输出。
-  * **URL 访问频率计数 (Count of URL Access Frequency)：** Map 函数处理网页请求日志并输出 `(URL, 1)`。Reduce 函数将相同 URL 的所有值相加，并发出 `(URL, total count)` 对。
-  * **反向 Web 链接图 (Reverse Web-Link Graph)：** Map 函数为在名为 `source` 的页面中找到的指向 `target` URL 的每个链接输出 `(target, source)` 对。Reduce 函数将与给定 `target` URL 关联的所有 `source` URL 列表连接起来，并发出对：`(target, list(source))`。
-  * **每台主机的术语向量 (Term-Vector per Host)：** 术语向量将文档或文档集中出现的最重要的单词总结为 `(word, frequency)` 对列表。Map 函数为每个输入文档发出一个 `(hostname, term vector)` 对（其中 hostname 从文档的 URL 中提取）。Reduce 函数接收给定主机的所有每文档术语向量。它将这些术语向量相加，丢弃不频繁的术语，然后发出最终的 `(hostname, term vector)` 对。
-  ![](/images/Figure-1.png)
+>下面列出几类有趣的程序，它们都能轻松用MapReduce范式来表达：
 
-  * **倒排索引 (Inverted Index)：** Map 函数解析每个文档，并发出一个 `(word, document ID)` 对序列。Reduce 函数接受给定单词的所有对，对相应的文档 ID 进行排序，并发出一个 `(word, list(document ID))` 对。所有输出对的集合形成一个简单的倒排索引。以此计算为基础增加跟踪单词位置的功能也很容易。
-  * **分布式排序 (Distributed Sort)：** Map 函数从每个记录中提取键，并发出 `(key, record)` 对。Reduce 函数原样发出所有对。此计算依赖于 4.1 节中描述的分区工具和 4.2 节中描述的排序属性。
+**Distributed Grep:** The map function emits a line if it matches a supplied pattern. The reduce function is an identity function that just copies the supplied intermedi-ate data to the output.
+
+>**分布式 Grep (Distributed Grep)：** map函数在文本行匹配指定模式时输出该行，reduce函数作为恒等函数仅将收到的中间数据原样写出。
+
+**Count of URL Access Frequency:** The map func-tion processes logs of web page requests and outputs ⟨URL, 1⟩. The reduce function adds together all values for the same URL and emits a ⟨URL, total count⟩ pair.
+
+>**URL访问频率统计(Count of URL Access Frequency)：** map函数读取网页访问日志并输出⟨URL,1⟩；reduce函数对同一URL的所有值求和并给出⟨URL,访问总数⟩。
+
+Reverse Web-Link Graph: The map function outputs ⟨target, source⟩ pairs for each link to a target URL found in a page named source. The reduce function concatenates the list of all source URLs as-sociated with a given target URL and emits the pair: ⟨target, list(source)⟩
+
+>**反向Web链接图(Reverse Web-Link Graph)：** map函数在名为source的页面中发现指向target的每个链接时输出⟨target,source⟩；reduce函数将指向同一target的所有source URL拼接成列表，最终产出⟨target,list(source)⟩。
+
+Term-Vector per Host: A term vector summarizes the most important words that occur in a document or a set of documents as a list of ⟨word, frequency⟩ pairs. The map function emits a ⟨hostname, term vector⟩ pair for each input document (where the hostname is extracted from the URL of the document). The re-duce function is passed all per-document term vectors for a given host. It adds these term vectors together, throwing away infrequent terms, and then emits a final ⟨hostname, term vector⟩ pair.
+
+>**每个主机的term vector(Term-Vector per Host)：** term vector以⟨word,frequency⟩列表总结文档或文档集合中最重要的词。map函数为每个输入文档输出⟨hostname,term vector⟩，其中hostname取自文档URL；reduce函数汇总该主机下所有文档的term vector，丢弃低频词后给出最终的⟨hostname,term vector⟩。
+
+![](/images/Figure-1.png)
+
+Inverted Index: The map function parses each docu-ment, and emits a sequence of ⟨word, document ID⟩ pairs. The reduce function accepts all pairs for a given word, sorts the corresponding document IDs and emits a ⟨word, list(document ID)⟩ pair. The set of all output pairs forms a simple inverted index. It is easy to augment this computation to keep track of word positions.
+
+>**倒排索引 (Inverted Index)：** map函数解析每个文档并输出一系列`⟨word,document ID⟩`；reduce函数接收同一单词的所有pair，按document ID排序后产出`⟨word,list(document ID)⟩`。汇总所有输出即可得到一个基础倒排索引，如需记录词位信息也能轻松扩展。
+
+Distributed Sort: The map function extracts the key from each record, and emits a ⟨key, record⟩ pair. The reduce function emits all pairs unchanged. This compu-tation depends on the partitioning facilities described in Section 4.1 and the ordering properties described in Sec- tion 4.2.
+
+>**分布式排序 (Distributed Sort)：** map函数从每条记录提取key并输出`⟨key,record⟩`，`reduce`函数原样输出所有pair。该计算依赖4.1节描述的分区机制和4.2节讲述的排序特性。
 
 -----
 
 ## 3\. 实现 (Implementation)
 
-MapReduce 接口可能有许多不同的实现。正确的选择取决于环境。例如，一种实现可能适合小型共享内存机器，另一种适合大型 NUMA 多处理器，还有一种适合更大的网络机器集合。
+Many different implementations of the MapReduce in-terface are possible. The right choice depends on the environment. For example, one implementation may be suitable for a small shared-memory machine, another for a large **NUMA** multi-processor, and yet another for an even larger collection of networked machines.
 
-本节描述了针对 Google 广泛使用的计算环境的实现：通过交换式以太网连接在一起的大型普通商用 PC 集群。在我们的环境中：
+>MapReduce接口有多种实现方式，具体选型取决于运行环境：小型共享内存机器需要一种实现，大型**NUMA**多处理器适合另一种，而规模更大的网络化集群则需要再不同的方案。
 
-1.  机器通常是运行 Linux 的双处理器 x86 处理器，每台机器有 2-4 GB 内存。
-2.  使用普通网络硬件，机器层面通常为 100 Mb/s 或 1 Gb/s，但整体二分带宽（bisection bandwidth）平均要低得多。
-3.  一个集群由数百或数千台机器组成，因此机器故障很常见。
-4.  存储由直接连接到各个机器的廉价 IDE 磁盘提供。内部开发的分布式文件系统（GFS）用于管理存储在这些磁盘上的数据。该文件系统使用复制在不可靠的硬件之上提供可用性和可靠性。
-5.  用户将作业提交给调度系统。每个作业由一组任务组成，由调度程序映射到集群内的一组可用机器上。
+This section describes an implementation targeted to the computing environment in wide use at Google: large clusters of commodity PCs connected together with switched Ethernet [4]. In our environment:
+
+>本节介绍的实现面向Google广泛使用的计算环境：由以太网交换机互连的大规模商用PC集群[4]。在这一环境中：
+
+(1) Machines are typically dual-processor x86 processors running Linux, with 2-4 GB of memory per machine.
+
+>(1)集群中的机器通常是运行Linux的双处理器x86主机，每台具备2–4GB内存。
+
+(2) Commodity networking hardware is used – typically either 100 megabits/second or 1 gigabit/second at the machine level, but averaging considerably less in over-all bisection bandwidth.
+
+>(2) 使用的是商品化网络硬件——通常在单机层面是100Mb/s或1Gb/s，但整体二分带宽（bisection bandwidth）平均远低于此值。
+
+(3) A cluster consists of hundreds or thousands of ma-chines, and therefore machine failures are common.
+
+>(3) 一个集群由数百台甚至数千台机器组成，因此**机器故障是常态**（非常常见）。
+
+(4) Storage is provided by inexpensive IDE disks at-tached directly to individual machines. A distributed file system [8] developed in-house is used to manage the data stored on these disks. The file system uses replication to provide availability and reliability on top of unreliable hardware.
+
+>(4) 存储由直接连接到各个机器的廉价 IDE 磁盘提供。系统使用内部开发的一种分布式文件系统(GFS)[8]来管理这些磁盘上的数据。该文件系统通过**数据多副本复制（replication）**的方式，在不可靠的硬件之上提供高可用性和可靠性。
+
+(5) Users submit jobs to a scheduling system. Each job consists of a set of tasks, and is mapped by the scheduler to a set of available machines within a cluster.
+
+>(5) 用户将作业（jobs）提交给调度系统。每个作业由一组任务（tasks）组成，调度器会将这些任务映射到集群内的一组可用机器上执行。
 
 ### 3.1 执行概览 (Execution Overview)
 
-Map 调用通过自动将输入数据划分为 $M$ 个拆分（split）分布在多台机器上。输入拆分可以由不同的机器并行处理。Reduce 调用通过使用分区函数（例如 `hash(key) mod R`）将中间键空间划分为 $R$ 个片段来分布。分区数量 ($R$) 和分区函数由用户指定。
+The Map invocations are distributed across multiple machines by automatically partitioning the input data into a set of $M splits$. The input splits can be pro-cessed in parallel by different machines. $Reduce$ invoca-tions are distributed by partitioning the intermediate key space into $R$ pieces using a partitioning function (e.g., $hash(key)$ mod $R$). The number of partitions ($R$) and the partitioning function are specified by the user.
 
-*图 1：执行概览*
+>Map 调用通过将输入数据自动划分为 **M 个 split** 来实现在多台机器上的并行执行。这些输入 split 可以被不同的机器并行处理。 $Reduce$ 调用则通过使用分区函数（例如 $hash(key)$ mod $R$）将中间键（intermediate key）的键空间划分为 **R 份** 来实现分布。分区数量（$R$）以及具体的分区函数由用户指定。 （简单说：Map 的并行度由 M 决定，Reduce 的并行度由 R 决定，用户可以自行设置这两个值。）
 
-图 1 显示了我们的实现中 MapReduce 操作的整体流程。当用户程序调用 MapReduce 函数时，会发生以下操作序列（图 1 中的数字标签对应于下面的列表）：
+>**【笔记】：** M：数据的分片 R:基于分片上的分组。
 
-1.  用户程序中的 MapReduce 库首先将输入文件拆分为 $M$ 个片段，通常每个片段 16 MB 到 64 MB（用户可通过可选参数控制）。然后它在集群的一组机器上启动程序的许多副本。
-2.  程序副本中有一个是特殊的——**Master（主节点）**。其余的是由 Master 分配工作的 **Worker（工作节点）**。有 $M$ 个 Map 任务和 $R$ 个 Reduce 任务需要分配。Master 选择空闲的 Worker 并为每个 Worker 分配一个 Map 任务或 Reduce 任务。
-3.  被分配了 Map 任务的 Worker 读取相应输入拆分的内容。它从输入数据中解析出键/值对，并将每一对传递给用户定义的 Map 函数。Map 函数产生的中间键/值对缓存在内存中。
-4.  定期地，缓冲的对被写入本地磁盘，并由分区函数划分为 $R$ 个区域。这些缓冲对在本地磁盘上的位置被传回给 Master，Master 负责将这些位置转发给 Reduce Worker。
-5.  当 Reduce Worker 收到 Master 关于这些位置的通知时，它使用远程过程调用（RPC）从 Map Worker 的本地磁盘读取缓冲数据。当 Reduce Worker 读取了所有中间数据后，它会按中间键对其进行排序，以便将所有相同键的出现组合在一起。排序是必需的，因为通常许多不同的键映射到同一个 Reduce 任务。如果中间数据量太大无法放入内存，则使用外部排序。
-6.  Reduce Worker 迭代排序后的中间数据，并且对于遇到的每个唯一中间键，它将键和相应的中间值集传递给用户的 Reduce 函数。Reduce 函数的输出被追加到该 Reduce 分区的最终输出文件中。
-7.  当所有 Map 任务和 Reduce 任务完成后，Master 唤醒用户程序。此时，用户程序中的 MapReduce 调用返回到用户代码。
+Figure 1 shows the overall flow of a **MapReduce** op-eration in our implementation. When the user program calls the $MapReduce$ function, the following sequence of actions occurs (the numbered labels in Figure 1 corre-spond to the numbers in the list below):
 
-成功完成后，MapReduce 执行的输出可在 $R$ 个输出文件中获得（每个 Reduce 任务一个，文件名由用户指定）。通常，用户不需要将这 $R$ 个输出文件合并为一个文件——他们经常将这些文件作为输入传递给另一个 MapReduce 调用，或者从另一个能够处理划分为多个文件的输入的分布式应用程序中使用它们。
+>图1展示了我们实现中的 MapReduce 操作的整体执行流程。当用户程序调用 MapReduce 函数时，会按以下顺序执行一系列动作（图1中的编号与下文列表的编号一一对应）：
+
+1. The MapReduce library in the user program first splits the input files into M pieces of typically 16 megabytes to 64 megabytes (**MB**) per piece (con-trollable by the user via an optional parameter). It then starts up many copies of the program on a clus- ter of machines.
+
+>1. 用户程序中的 MapReduce 库首先将输入文件划分为 **M** 片，通常每个片段 16 MB 到 64 MB（用户可通过可选参数控制）。随后，系统在机群上启动该程序的多个副本（即启动大量 worker 进程/实例）。
+
+2. One of the copies of the program is special – the master. The rest are workers that are assigned work by the master. There are M map tasks and R reduce tasks to assign. The master picks idle workers and assigns each one a map task or a reduce task.
+
+>2. 程序的众多副本中有一个是特殊的——**master**（主控节点）。其余的都是 **worker**（工作节点），由 master 负责给它们分配任务。总共有 **M 个 map 任务**和 **R 个 reduce 任务**需要分配。master 会挑选空闲的 worker，为每个空闲 worker 分配一个 map 任务或一个 reduce 任务。
+
+3. A worker who is assigned a map task reads the contents of the corresponding input split. It parses key/value pairs out of the input data and passes each pair to the user-defined Map function. The interme-diate key/value pairs produced by the Map function are buffered in memory.
+
+>3. 被分配到 map 任务的 worker 会读取对应输入分片（input split）的全部内容。它从输入数据中解析出键/值对（key/value pairs），然后将每一对键/值传递给用户自定义的 Map 函数。Map 函数产生的**中间键/值对**会被暂时缓冲在内存中。
+
+4. Periodically, the buffered pairs are written to local disk, partitioned into R regions by the partitioning function. The locations of these buffered pairs on the local disk are passed back to the master, who is responsible for forwarding these locations to the reduce workers.
+
+>4. 这些缓冲在内存中的中间键/值对会**定期**被写入本地磁盘，并通过分区函数（$partitioning$ function）划分为 **R 个区域**。这些缓冲数据在本地磁盘上的存储位置会被回传给 master，master 负责将这些位置信息转发给对应的 reduce worker。
+
+5. When a reduce worker is notified by the master about these locations, it uses remote procedure calls to read the buffered data from the local disks of the map workers. When a reduce worker has read all in-termediate data, it sorts it by the intermediate keys so that all occurrences of the same key are grouped together. The sorting is needed because typically many different keys map to the same reduce task. If the amount of intermediate data is too large to fit in memory, an external sort is used.
+
+>5. 当 reduce worker 收到 master 发来的位置通知后，它会通过远程过程调用（RPC）从各个 map worker 的本地磁盘读取这些缓冲的中间数据。reduce worker 读完所有中间数据后，会按照**中间键（intermediate key）**对其进行排序，使得相同 key 的所有记录都被归并到一起。排序是必须的，因为通常会有很多不同的 key 被哈希到同一个 reduce 任务中。如果中间数据量太大、无法完全放入内存，则会使用**外部排序（external sort）**。
+
+6. The reduce worker iterates over the sorted interme-diate data and for each unique intermediate key en-countered, it passes the key and the corresponding set of intermediate values to the user’s Reduce func-tion. The output of the Reduce function is appended to a final output file for this reduce partition.
+
+>6. reduce worker 会遍历已经排序好的中间数据，对于遇到的每一个**唯一的中间键（unique intermediate key）**，它会将该 key 以及对应的所有中间值（一组值）一起传递给用户自定义的 Reduce 函数。Reduce 函数的输出会被**追加**到一个属于该 reduce 分区的最终输出文件中。
+
+
+7. When all map tasks and reduce tasks have been completed, the master wakes up the user program.  At this point, the MapReducecall in the user pro-gram returns back to the user code.
+
+>7. 当所有的 map 任务和 reduce 任务都执行完毕后，master 会唤醒用户程序。此时，用户程序中的 MapReduce 调用返回，控制权重新交回给用户代码。
+
+After successful completion, the output of the mapre-duce execution is available in the R output files (one per reduce task, with file names as specified by the user).  Typically, users do not need to combine these R output files into one file – they often pass these files as input to another MapReduce call, or use them from another dis- tributed application that is able to deal with input that is partitioned into multiple files.
+
+>执行成功完成后，MapReduce 的输出结果存放在 **R 个输出文件**中（每个 reduce 任务对应生成一个文件，文件名由用户指定）。  通常，用户**不需要**手动将这 R 个输出文件合并成一个文件——他们往往直接将这 R 个文件作为下一个 MapReduce 作业的输入，或者交给另一个能够处理“多文件分区输入”的分布式应用程序使用。
 
 ### 3.2 Master 数据结构 (Master Data Structures)
 
-Master 维护几个数据结构。对于每个 Map 任务和 Reduce 任务，它存储状态（空闲、进行中或已完成）以及 Worker 机器的标识（对于非空闲任务）。
+The master keeps several data structures. For each map task and reduce task, it stores the state (idle, in-progress, or completed), and the identity of the worker machine (for non-idle tasks).
 
-Master 是中间文件区域位置信息从 Map 任务传播到 Reduce 任务的管道。因此，对于每个已完成的 Map 任务，Master 存储该 Map 任务产生的 $R$ 个中间文件区域的位置和大小。当 Map 任务完成时，会接收到对此位置和大小信息的更新。这些信息被增量推送到具有正在进行的 Reduce 任务的 Worker。
+>master 会维护若干数据结构。对于每一个 map 任务和 reduce 任务，它都会记录以下信息：
+>- **状态**（idle：空闲、in-progress：正在进行、completed：已完成）
+>- **执行该任务的 worker 机器标识**（对于非空闲状态的任务）
+
+The master is the conduit through which the location of intermediate file regions is propagated from map tasks to reduce tasks. Therefore, for each completed map task, the master stores the locations and sizes of the R inter-mediate file regions produced by the map task. Updates to this location and size information are received as map tasks are completed. The information is pushed incre-mentally to workers that have $in-progress$ reduce tasks.
+
+>master 是中间文件区域位置信息从 map 任务传递到 reduce 任务的**唯一通道**。因此，对于每一个已经完成的 map 任务，master 都会存储该 map 任务产生的 **R 个中间文件区域**的位置（location）和大小（size）信息。
+>这些位置和大小信息会随着 map 任务的完成**逐步更新**到 master 中。master 会**增量地**（incrementally）将这些信息推送给当前处于 **in-progress**（正在执行）状态的 reduce worker，以便它们及时拉取所需的数据。
 
 ### 3.3 容错 (Fault Tolerance)
 
-由于 MapReduce 库旨在帮助使用成百上千台机器处理海量数据，因此该库必须能够优雅地容忍机器故障。
+Since the MapReduce library is designed to help process very large amounts of data using hundreds or thousands of machines, the library must tolerate machine failures gracefully.
+
+>由于 MapReduce 库的设计目标是帮助使用**数百台甚至数千台**机器来处理**海量数据**，因此该库必须能够**优雅地容忍机器故障**（gracefully tolerate machine failures）。
 
 **Worker 故障 (Worker Failure)**
 
-Master 定期 Ping 每个 Worker。如果在一定时间内没有收到 Worker 的响应，Master 将该 Worker 标记为已失败。该 Worker 完成的任何 Map 任务都会重置回其初始空闲状态，因此有资格在其他 Worker 上重新调度。同样，在失败的 Worker 上正在进行的任何 Map 任务或 Reduce 任务也会重置为空闲状态，并有资格重新调度。
+The master pings every worker periodically. If no re-sponse is received from a worker in a certain amount of time, the master marks the worker as failed. Any map tasks completed by the worker are reset back to their ini-tial idle state, and therefore become eligible for schedul-ing on other workers. Similarly, any map task or reduce task in progress on a failed worker is also reset to idle and becomes eligible for rescheduling.
 
-已完成的 Map 任务在失败时需要重新执行，因为它们的输出存储在失败机器的本地磁盘上，因此无法访问。已完成的 Reduce 任务不需要重新执行，因为它们的输出存储在全局文件系统中。
+>master 会**定期**向每个 worker 发送 ping 检测。如果在一定时间内没有收到某个 worker 的响应，master 就会将该 worker 标记为**已失效（failed）**。
+>- 该 worker 上已经**完成**的 map 任务会被重置回初始的 **idle** 状态，从而可以重新被调度到其他机器上执行。
+>- 该 worker 上正在执行（in-progress）的 map 任务或 reduce 任务，也同样会被重置为 **idle** 状态，变得可以重新调度。
+>
+>（简单说：一旦机器挂了，它干过的和正在干的活儿全部作废，都重新排队等着别的机器来干。）
 
-当一个 Map 任务首先由 Worker A 执行，后来又由 Worker B 执行（因为 A 失败）时，所有执行 Reduce 任务的 Worker 都会收到重新执行的通知。任何尚未从 Worker A 读取数据的 Reduce 任务将从 Worker B 读取数据。
+Completed map tasks are re-executed on a failure be-cause their output is stored on the local disk(s) of the failed machine and is therefore inaccessible. Completed reduce tasks do not need to be re-executed since their output is stored in a global file system.
 
-MapReduce 对大规模 Worker 故障具有弹性。例如，在一次 MapReduce 操作期间，正在运行的集群上的网络维护导致每组 80 台机器在几分钟内无法访问。MapReduce Master 只是重新执行了不可达 Worker 机器所做的工作，并继续取得进展，最终完成了 MapReduce 操作。
+>已完成的 **map 任务** 在机器失效后必须重新执行，因为它们的输出存储在失效机器的**本地磁盘**上，因此变得**不可访问**。  
+>而已完成的 **reduce 任务** 则**不需要重新执行**，因为它们的输出存储在**全局文件系统**（如 GFS）中，仍然可以被正常访问。
+
+When a map task is executed first by worker A and then later executed by worker B (because A failed), all workers executing reduce tasks are notified of the re- execution. Any reduce task that has not already read the data from worker A will read the data from worker B.
+
+>当一个 map 任务先由 worker A 执行，随后因 A 失效而改由 worker B 重新执行时，master 会通知所有正在执行 reduce 任务的 worker 发生了**重新执行**。
+>
+>那些还没有从 worker A 读取过数据的 reduce worker，将会改为从 worker B 读取该 map 任务的输出数据。（已经从 A 读过的则不需要再读，以避免重复。）
+
+MapReduce is resilient to large-scale worker failures.  For example, during one MapReduce operation, network maintenance on a running cluster was causing groups of 80 machines at a time to become unreachable for sev-eral minutes. The MapReduce master simply re-executed the work done by the unreachable worker machines, and continued to make forward progress, eventually complet-ing the MapReduce operation.
+
+>MapReduce 对大规模 worker 失效具有很强的**容错能力**。  
+>举例来说，在一次 MapReduce 操作执行过程中，集群正在进行网络维护，导致一次有 **80 台机器**成批地断连数分钟，变得不可访问。  
+>MapReduce master 只是简单地将这些不可达机器上已经完成的工作重新执行一遍，系统就能继续向前推进，最终顺利完成整个 MapReduce 操作。
 
 **Master 故障 (Master Failure)**
 
-让 Master 写入上述 Master 数据结构的定期检查点（Checkpoints）很容易。如果 Master 任务死亡，可以从最后的检查点状态启动一个新的副本。然而，鉴于只有一个 Master，其发生故障的可能性不大；因此我们当前的实现如果 Master 失败则中止 MapReduce 计算。客户可以检查此情况并在需要时重试 MapReduce 操作。
+It is easy to make the master write periodic checkpoints of the master data structures described above. If the mas-ter task dies, a new copy can be started from the last checkpointed state. However, given that there is only a single master, its failure is unlikely; therefore our cur-rent implementation aborts the MapReduce computation if the master fails. Clients can check for this condition and retry the MapReduce operation if they desire.
+
+>让 master 定期对其上述数据结构进行**检查点（checkpoint）**写入是非常容易实现的。如果 master 任务挂掉，就可以从最近一次的检查点状态启动一个新的 master 副本。
+>不过，由于整个系统只有一个 master，**它的失效概率极低**；因此我们当前的实现采取了更简单的策略：**一旦 master 失效，就直接中止整个 MapReduce 计算**。客户端可以检测到这种情况，如果需要的话，可以自行重试整个 MapReduce 操作。
+
 
 **故障存在时的语义 (Semantics in the Presence of Failures)**
 
-当用户提供的 Map 和 Reduce 算子是其输入值的确定性函数时，我们的分布式实现产生的输出与整个程序的无故障顺序执行产生的输出相同。
+When the user-supplied map and reduce operators are de-terministic functions of their input values, our distributed implementation produces the same output as would have been produced by a non-faulting sequential execution of the entire program.
 
-我们依靠 Map 和 Reduce 任务输出的原子提交（atomic commits）来实现这一属性。每个正在进行的任务将其输出写入私有临时文件。一个 Reduce 任务产生一个这样的文件，一个 Map 任务产生 $R$ 个这样的文件（每个 Reduce 任务一个）。当 Map 任务完成时，Worker 向 Master 发送一条消息，并在消息中包含 $R$ 个临时文件的名称。如果 Master 收到已完成 Map 任务的完成消息，它将忽略该消息。否则，它会在 Master 数据结构中记录 $R$ 个文件的名称。
+>当用户提供的 **map** 和 **reduce** 函数对其输入是**确定性**的（即同样的输入总是产生完全相同的输出）时，我们的分布式实现所产生的最终结果，将与**在无故障的单机顺序执行**整个程序所得到的结果**完全一致**。
 
-当 Reduce 任务完成时，Reduce Worker 以原子方式将其临时输出文件重命名为最终输出文件。如果同一个 Reduce 任务在多台机器上执行，则将针对同一个最终输出文件执行多个重命名调用。我们依靠底层文件系统提供的原子重命名操作来保证最终文件系统状态仅包含一次 Reduce 任务执行所产生的数据。
+We rely on atomic commits of map and reduce task outputs to achieve this property. Each in-progress task writes its output to private temporary files. A reduce task produces one such file, and a map task produces R such files (one per reduce task). When a map task completes, the worker sends a message to the master and includes the names of the R temporary files in the message. If the master receives a completion message for an already completed map task, it ignores the message. Otherwise, it records the names of R files in a master data structure.
 
-我们绝大多数的 Map 和 Reduce 算子都是确定性的，在这种情况下，我们的语义等同于顺序执行的事实使得程序员很容易推断其程序的行为。当 Map 和/或 Reduce 算子是不确定的时候，我们提供较弱但仍然合理的语义。在存在不确定算子的情况下，特定 Reduce 任务 $R_{1}$ 的输出等同于不确定程序的顺序执行所产生的 $R_{1}$ 的输出。然而，不同 Reduce 任务 $R_{2}$ 的输出可能对应于该不确定程序的不同顺序执行所产生的 $R_{2}$ 的输出。
+>为了实现这一特性，我们依赖 Map 和 Reduce 任务输出的原子提交 (Atomic Commits)。
+>每个正在运行的任务都把自己的输出写入**私有的临时文件**。
+> *一个 reduce 任务只产生一个这样的临时文件。
+> *一个 map 任务会产生 R 个这样的临时文件（对应 R 个 reduce 任务，每个 reduce 一个）。
+>当一个 map 任务完成时，worker 会向 master 发送一条完成消息，并在消息中附带这 R 个临时文件的文件名。
+>如果 master 收到的是某个**已经标记为已完成**的 map 任务的完成消息，它会直接忽略这条消息（这是为了应对 worker 崩溃后重试导致的重复通知）。 否则，master 会在自己的主数据结构中记录下这 R 个文件的名字和位置。 （reduce 任务完成时同理，只是只有一个文件，也会原子性地让 master 知道最终文件名。）
+
+>**【笔记】：** 
+>1. 为什么要写“私有临时文件”？
+> * 避免读到脏数据：如果 Worker 直接往最终文件里写，万一写到一半机器挂了，读文件的人就会读到只有一半的数据。
+> * 做法：先写到 temp_file，等全部写完且校验无误后，再由 Master 协调或者通过文件系统操作（如 rename）瞬间变成正式文件。这就是所谓的原子提交——要么完全成功，要么完全不存在，不会有“半成功”的状态。
+>2. 为什么 Map 产生 R 个文件？
+> * Map 需要把数据提前分好类（Partitioning）：
+>   * 给 Reduce 1 的数据放入 temp_file_1
+>   * 给 Reduce 2 的数据放入 temp_file_2
+>   * ...
+>   * 给 Reduce R 的数据放入 temp_file_R
+> * 这样 Reduce 任务启动时，只需要去拉取属于自己的那一份文件即可。
+>
+> **MapReduce 通过“先写本地临时文件 + 任务完成时向 master 原子注册文件名”的方式，把可能重复执行的任务输出，变成了对外部只出现一次的最终结果。** 这就是exactly-once 的核心技巧。
+
+When a reduce task completes, the reduce worker atomically renames its temporary output file to the final output file. If the same reduce task is executed on multi-ple machines, multiple rename calls will be executed for the same final output file. We rely on the atomic rename operation provided by the underlying file system to guar-antee that the final file system state contains just the data produced by one execution of the reduce task.
+
+>当一个 reduce 任务完成时，reduce worker 会将它的临时输出文件**原子性地重命名 （atomic rename）** 为最终输出文件名。 如果同一个 reduce 任务在多台机器上被重复执行（例如由于前面某台 worker 崩溃导致任务被重新调度），就会对同一个最终输出文件名执行多次 rename 操作。 我们依靠底层文件系统提供的原子 rename 操作来保证：最终文件系统的状态中，只会保留某一次 reduce 任务执行所产生的数据（其他几次的临时文件要么改名失败，要么被覆盖），绝不会出现多个版本并存或内容混合的情况。
+
+The vast majority of our $map$ and $reduce$ operators are deterministic, and the fact that our semantics are equiv- alent to a sequential execution in this case makes it very easy for programmers to reason about their program’s be-havior. When the $map$ and/or $reduce$ operators are non-deterministic, we provide weaker but still reasonable se-mantics. In the presence of non-deterministic operators, the output of a particular reduce task $R_{1}$ is equivalent to the output for $R_{1}$ produced by a sequential execution of the non-deterministic program. However, the output for a different reduce task $R_{2}$ may correspond to the output for $R_{2}$ produced by a different sequential execution of the non-deterministic program.
+
+>我们编写的绝大多数 **map** 和 **reduce** 函数都是**确定性**的（即相同的输入永远产生相同的输出）。正因为如此，MapReduce 的执行语义在这种情况下**等价于一次顺序执行**，这让程序员**极易推理**程序的行为，调试和验证都非常简单。
+>当 **map 和/或 reduce 函数是非确定性**的（即相同输入可能产生不同输出）时，我们提供的是**稍弱但仍然合理**的语义保证，具体如下：
+> - 对于某个特定的 reduce 任务 **R₁**，它的最终输出等价于**某一次**非确定性程序的顺序执行所产生的 R₁ 的输出。
+> - 但对于另一个不同的 reduce 任务 **R₂**，它的输出可能对应于**另一次**非确定性程序的顺序执行所产生的 R₂ 的输出。
+>换句话说：
+> - 每个 reduce 分区内部是一致的（相当于某一次完整的顺序执行在该分区上的结果）；
+> - 但不同 reduce 分区之间可能来自程序**不同的运行路径**，因此整体输出不一定等价于单次顺序执行的完整结果。
+
+>**【笔记】：**  “只要你的函数是确定性的，MapReduce 就给你完美的顺序执行假象；如果你写了非确定性函数，我们至少保证每个 reduce 分区内部是一致的，跨分区可能不一致——这已经是分布式系统能给的最好保证了。”
+>这就是 Google MapReduce 论文对**确定性与非确定性函数语义**的经典描述，也是很多程序员误以为 MapReduce  “一定 exactly-once 且顺序一致”  的根源——其实** 只有在确定性函数下才完全成立**。
+
+Consider map task $M$ and reduce tasks $R_{1}$ and $R_{2}$.
+Let $e(R_{i})$ be the execution of Ri that committed (there
+is exactly one such execution). The weaker semantics
+arise because $e(R_{1})$ may have read the output produced
+by one execution of $M$ and $e(R_{2})$ may have read the
+output produced by a different execution of $M$.
+
+
+>考虑一个 map 任务 **M**，以及两个 reduce 任务 **R₁** 和 **R₂**。
+>用 **e(Rᵢ)** 表示最终真正提交（committed）的那个 Rᵢ 的执行实例（有且仅有一次这样的执行是生效的）。
+>所谓“较弱的语义”产生的原因在于：
+>- 提交的 **e(R₁)** 可能读取的是 **M 的某一次执行**产生的中间数据；
+>- 而提交的 **e(R₂)** 可能读取的是 **M 的另一次执行**产生的中间数据（两次执行的输出内容可能不同）。
+
+>**【笔记】：**
+>即使整个作业最终只保留了一次 map 任务 M 的输出被“正式提交”，但不同的 reduce 任务在执行过程中，可能实际看到并消费了 M 的**不同次重试执行**所产生的中间数据，从而导致即使 map/reduce 函数是非确定性的，不同 reduce 分区的最终结果也可能基于 map 任务的不同运行结果。
+```
+【笔记】：
+场景假设：map 任务 M 因为 worker 崩溃被执行了两次
+          M 执行第1次 → 产生中间数据 A
+          worker 崩溃
+          M 被重新调度执行第2次 → 产生中间数据 B（内容与 A 不同）
+
+最终只有第2次执行的完成消息被 master 接受，所以：
+    正式提交的中间数据 = B（即只有 B 会被记录到 master 数据结构）
+
+但是，在实际执行过程中可能发生：
+    R₁ 在很早的时候就已经从崩溃前的 worker 拉取到了中间数据 A 并完成了计算
+    R₂ 只能等到 M 重做完成后，拉取中间数据 B 再完成计算
+
+结果：
+    e(R₁) 读的是 A 的输出
+    e(R₂) 读的是 B 的输出
+    → 两个 reduce 看到的是 map 任务“不同版本”的结果 → 弱语义的来源
+```
+
+>**【笔记】：即使 master 保证了“只有一个 map 执行的结果被正式提交”，但在非确定性情况下，不同的 reduce 任务在运行时可能已经消费了该 map 任务先前失败重试版本的输出，从而破坏了“所有 reduce 都基于完全相同的中间数据”这一强一致性假设。**
+>这正是 MapReduce 在非确定性函数下只能提供“每个 reduce 内部一致、但跨 reduce 不一定全局一致”的根本原因。
+
+
 
 ### 3.4 局部性 (Locality)
+Network bandwidth is a relatively scarce resource in our computing environment. We conserve network band-width by taking advantage of the fact that the input data (managed by GFS [8]) is stored on the local disks of the machines that make up our cluster. GFS divides each file into 64 MB blocks, and stores several copies of each block (typically 3 copies) on different machines. The MapReduce master takes the location information of the input files into account and attempts to schedule a map task on a machine that contains a replica of the corre- sponding input data. Failing that, it attempts to schedule a map task near a replica of that task’s input data (e.g., on a worker machine that is on the same network switch as the machine containing the data). When running large MapReduce operations on a significant fraction of the workers in a cluster, most input data is read locally and consumes no network bandwidth.
 
-在我们的计算环境中，网络带宽是一种相对稀缺的资源。我们通过利用输入数据（由 GFS 管理）存储在组成集群的机器的本地磁盘上这一事实来节省网络带宽。GFS 将每个文件划分为 64 MB 的块，并在不同的机器上存储每个块的多个副本（通常是 3 个副本）。MapReduce Master 考虑输入文件的位置信息，并尝试在包含相应输入数据副本的机器上调度 Map 任务。如果做不到这一点，它会尝试在任务输入数据的副本附近（例如，在与包含数据的机器处于同一网络交换机的 Worker 机器上）调度 Map 任务。当在集群的大部分 Worker 上运行大型 MapReduce 操作时，大多数输入数据是在本地读取的，不消耗网络带宽。
+>在我们的计算环境中，**网络带宽是一种相对稀缺的资源**。  为了尽量节省网络带宽，我们充分利用了这样一个事实：**输入数据（由 GFS 管理[8]）本来就存储在构成集群的机器的本地磁盘上**。
+>GFS 会把每个文件切分为 **64 MB** 的块（block），并在不同机器上保存每个块的多个副本（通常是 3 个副本）。
+>MapReduce 的 master 在调度 map 任务时，会**优先考虑输入数据的位置信息**，尽量做到：
+>1. 首选：把 map 任务调度到**正好存放着该任务输入数据某个副本的机器**上（即本地磁盘读取）。
+>2. 次选：如果做不到，就尽量调度到**与数据副本在同一个网络交换机下的机器**上（近距离网络传输）。
+>当在一个集群的相当一部分 worker 上运行大规模 MapReduce 作业时，**绝大部分输入数据都能够实现本地读取，几乎不消耗网络带宽**。
+
+
+> **【笔记】: MapReduce 最省带宽的秘密武器 = GFS 把数据存在本地磁盘 + master 尽量把 map 任务调度到数据所在机器 → 实现“计算向数据移动，而不是数据向计算移动”（move computation to the data）。** 
+>这也是 Google 能在上千台机器上跑 MapReduce 却不把网络打爆的核心原因之一。
 
 ### 3.5 任务粒度 (Task Granularity)
 
