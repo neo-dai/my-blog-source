@@ -1,6 +1,6 @@
 baseURL = "https://neo-dai.github.io/" # 换成你未来的网址
 languageCode = "zh-CN"
-title = "myblog"
+title = "Notes"
 theme = "PaperMod" # 使用PaperMod主题
 
 # 主题参数配置
