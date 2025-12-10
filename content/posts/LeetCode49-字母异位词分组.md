@@ -1,3 +1,12 @@
++++
+date = '2025-12-10T17:51:34+08:00'
+draft = false
+title = 'LeetCode49 字母异位词分组'
+categories = ["LeetCode"]
+tags = ["哈希表", "数组"]
+series = ["LeetCodeHot100"]
++++
+
 ### 一、题目描述
 
 [leetcode链接](https://leetcode.cn/problems/group-anagrams?envType=study-plan-v2&envId=top-100-liked)
