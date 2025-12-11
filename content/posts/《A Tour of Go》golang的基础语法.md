@@ -1,15 +1,16 @@
 +++
-date = '2025-11-24T16:03:07+08:00'
-draft = true
-title = 'Golang基础语法'
+date = '2025-12-11T17:46:13+08:00'
+draft = false
+title = '《A Tour of Go》golang的基础语法'
 categories = ["golang"]
-tags = ["go"]
-series = ["分布式系统设计"]
+tags = ["golang"]
+series = []
 +++
 
-![](/images/DockerGopher.png)
 
-本文将简要介绍 Go (Golang) 语言的基础语法和核心概念，适合有一定编程基础但刚接触 Go 的读者。通过具体示例，您可以快速了解 Go 的基本结构、数据类型、函数用法以及常用的编码习惯，有助于后续深入学习和项目实践。
+![](/images/file-20251211133350673.png)
+[tour.golang.org](https://tour.go-zh.org/list)
+
 
 ### package & import
 
@@ -60,7 +61,7 @@ func add(x int, y int) int {
 }
 ```
 
-2. 简写1
+2. 函数参数类型简写
 
 ```go
 func add(x , y int) int {
@@ -74,6 +75,11 @@ func add(x , y int) int {
 func swap(x, y string) (string, string) {
 	return y, x
 }
+// swap 函数调用示例
+func main() {
+    a, b := swap("hello", "world")
+    fmt.Println(a, b) // 输出: world hello
+}
 ```
 
 4. 带名字的返回值
@@ -84,14 +90,38 @@ func split(sum int) (x, y int) {
 	y = sum - x
 	return
 }
+// split 函数调用示例
+func main() {
+    x, y := split(17)
+    fmt.Println(x, y) // 输出: 7 10
+}
+
 ```
 
 5. 结构体函数
 
 ```go
+// Datacenter 结构体和 AddServer 方法的完整示例
+package main
+import "fmt"
+
+// Datacenter 定义
+type Datacenter struct {
+    serverCount int
+}
+
 // AddServer 首字母大写，是导出的 (public)
 func (d *Datacenter) AddServer() {
     d.serverCount++
+}
+
+func main() {
+    dc := &Datacenter{} // 创建一个 Datacenter 实例
+    fmt.Println("初始服务器数：", dc.serverCount) // dc.serverCount 可以直接访问是因为在同一个package内 
+    dc.AddServer()
+    fmt.Println("添加服务器后：", dc.serverCount)
+    dc.AddServer()
+    fmt.Println("再添加一次后：", dc.serverCount)
 }
 ```
 
@@ -179,7 +209,7 @@ for sum <10000 {
 for {
 }
 // for each 
-for i, v := range s {
+for i, v := range s { // 其中v是对s元素的拷贝, 修改元素需要访问s[i]
     fmt.Println(i, v)
 }
 for _, value := range s {
@@ -216,14 +246,28 @@ if sum < 10 {
     fmt.Println(sum)
 }
 
-// 特殊写法
+// if的特殊写法
+// 将初始化（或前置操作）与条件判断绑定在一起，变量的作用域限制在最小范围，从而避免污染外部的命名空间
+// 在处理可能返回错误的代码时非常实用 
 if sum=10; sum == 10 {
     fmt.Println(sum)
 }
+
+// 假设 os.ReadFile 返回 ([]byte, error)
+if data, err := os.ReadFile("file.txt"); err != nil {
+    // data 和 err 变量只在这里以及可能的 else/else if 中可见
+    fmt.Println("读取文件失败:", err)
+    return
+} else {
+    // 只有当 err 为 nil 时，才执行这里，data 在此作用域内可见
+    fmt.Println("文件内容大小:", len(data))
+}
+
+// 在这个 if 结构体之外，data 和 err 变量都不能被访问
 ```
 
 ### switch
-> 💡 golang 中的switch和cpp的区别在与go给每一个case默认添加了一个break
+> 💡 golang 中的switch和cpp的区别在与go给每一个case默认添加了一个break （可以不用手动加了！）
 ```go
 package main
 
@@ -284,44 +328,43 @@ func main() {
 ```
 
 ### 结构体
+> 💡 结构体就是一组字段 
 ```go 
-package main
-
-import "fmt"
-
 type Vertex struct {
-	X int
-	Y int
+	X, Y int
 }
 
 func main() {
-	v := Vertex{1, 2}
-	v.X = 4
-	fmt.Println(v.X)
+	// 1. 声明并赋值
+	// 内存：v1 是值类型，直接在栈上分配内存，存储完整的结构体数据
+	var v1 Vertex
+	v1.X, v1.Y = 1, 2
+	fmt.Println(v1) // {1 2}
 
-    // 结构体指针 无需使用-> 
-    p := &v
-    p.X = 109 
-    fmt.Println(v)
+	// 2. 字面量初始化（按顺序）
+	// 内存：v2 也是值类型，在栈上分配，v1 和 v2 是独立的内存区域
+	v2 := Vertex{1, 2}
+	fmt.Println(v2) // {1 2}
+
+	// 3. 命名字段初始化（未指定的字段为零值）
+	// 内存：v3 同样是值类型，在栈上分配，未初始化的字段自动置零
+	v3 := Vertex{X: 1}
+	fmt.Println(v3) // {1 0}
+
+	// 4. 结构体指针
+	// 内存：v4 是指针类型，v4 本身在栈上（存储地址），
+	//      但它指向的 Vertex 结构体数据可能在堆上分配
+	v4 := &Vertex{1, 2} 
+	v4.Y = 3 // 等价与 *(v4).Y = 3 
+	fmt.Println(v4) // &{1 3}
+
+	// 5. 使用 new 关键字
+	// 内存：new 分配内存并返回指针，结构体字段初始化为零值
+	//      v5 在栈上存储地址，指向的 Vertex 数据可能在堆上
+	v5 := new(Vertex)
+	v5.X = 1
+	v5.Y = 2
+	fmt.Println(v5) // &{1 2}
 }
 ```
 
-### 数组 
-var 数组名 [数组长度] 数组类型
-```go
-package main
-
-import "fmt"
-
-func main() {
-	var a [2]string
-	a[0] = "Hello"
-	a[1] = "World"
-	fmt.Println(a[0], a[1])
-	fmt.Println(a)
-
-	primes := [6]int{2, 3, 5, 7, 11, 13}
-	fmt.Println(primes)
-}
-
-```
