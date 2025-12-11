@@ -5,6 +5,7 @@ title = 'LeetCode49 字母异位词分组'
 categories = ["LeetCode"]
 tags = ["哈希表", "数组"]
 series = ["LeetCodeHot100"]
+math = true
 +++
 
 ### 一、题目描述
@@ -58,11 +59,12 @@ series = ["LeetCodeHot100"]
 ### 三、 复杂度分析
 
 #### 排序法
-- **时间复杂度**: $O(n*klogk)$，  n是数组长度 k是字符串长度 
-- **空间复杂度**: $O(n*k)$，存储 n 个字符串作为 value，最多 n 个 key（每个 key 长度为 k） 
+- **时间复杂度**: $O(n \times k \log k)$，n 是数组长度，k 是字符串长度 
+- **空间复杂度**: $O(n \times k)$，存储 n 个字符串作为 value，最多 n 个 key（每个 key 长度为 k） 
+
 #### 计数法
-- **时间复杂度**：$O(n*k)$
-- **空间复杂度**： $O(n*k)$
+- **时间复杂度**：$O(n \times k)$
+- **空间复杂度**：$O(n \times k)$
 
 ### 四、代码实现
 
